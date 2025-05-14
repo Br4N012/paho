@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MQTT Cliente Web</title>
+</head>
+<body>
+  <h1>Cliente MQTT con WebSockets</h1>
+
+  <input type="text" id="messageInput" placeholder="Escribe un mensaje">
+  <button onclick="publishMessage()">Publicar</button>
+
+  <h2>Mensajes recibidos:</h2>
+  <div id="messages" style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll;"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  <script>
+    const clientId = "clientId-" + Math.floor(Math.random() * 1000);
+    const client = new Paho.MQTT.Client("127.0.0.1", 9001, clientId);
+
+    client.onConnectionLost = (responseObject) => {
+      if (responseObject.errorCode !== 0) {
+        console.log("Conexión perdida: " + responseObject.errorMessage);
+      }
+    };
+
+    client.onMessageArrived = (message) => {
+      console.log("Mensaje recibido:", message.payloadString);
+      const msgDiv = document.getElementById("messages");
+      const p = document.createElement("p");
+      p.textContent = message.payloadString;
+      msgDiv.appendChild(p);
+      msgDiv.scrollTop = msgDiv.scrollHeight;
+    };
+
+    client.connect({
+      onSuccess: () => {
+        console.log("Conectado al broker.");
+        client.subscribe("world");
+      },
+      onFailure: (error) => {
+        console.error("Error de conexión:", error.errorMessage);
+      }
+    });
+
+    function publishMessage() {
+      const input = document.getElementById("messageInput");
+      const message = input.value.trim();
+      if (message) {
+        const mqttMessage = new Paho.MQTT.Message(message);
+        mqttMessage.destinationName = "world";
+        client.send(mqttMessage);
+        input.value = "";
+      }
+    }
+  </script>
+</body>
+</html>
